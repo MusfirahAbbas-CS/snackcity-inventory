@@ -143,7 +143,7 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
   }
 
   async function printReceipt(orderId: number) {
-    if (localStorage.getItem('role') === 'staff' && receipt?.printed === 1) {
+    if (sessionStorage.getItem('role') === 'staff' && receipt?.printed === 1) {
        setError("Receipt has already been printed once.");
        return;
     }
@@ -521,9 +521,9 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
                 <button
                   className={button}
                   onClick={() => printReceipt(receipt.id)}
-                  disabled={localStorage.getItem('role') === 'staff' && receipt.printed === 1}
+                  disabled={sessionStorage.getItem('role') === 'staff' && receipt.printed === 1}
                 >
-                  {localStorage.getItem('role') === 'staff' && receipt.printed === 1 ? 'Already Printed' : 'Print'}
+                  {sessionStorage.getItem('role') === 'staff' && receipt.printed === 1 ? 'Already Printed' : 'Print'}
                 </button>
               )}
               <button

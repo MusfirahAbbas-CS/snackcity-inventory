@@ -84,8 +84,8 @@ function LoginScreen({ setAuth }: { setAuth: (token: string, role: string) => vo
 }
 
 export default function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'))
-  const [role, setRole] = useState(localStorage.getItem('role'))
+  const [token, setToken] = useState(sessionStorage.getItem('token'))
+  const [role, setRole] = useState(sessionStorage.getItem('role'))
 
   const [page, setPage] = useState<'orders' | 'menu' | 'history' | 'settings' | 'inventory' | 'reports'>('orders')
   const settings = useSettings()
@@ -100,8 +100,8 @@ export default function App() {
 
   if (!token || !role) {
     return <LoginScreen setAuth={(t, r) => {
-      localStorage.setItem('token', t)
-      localStorage.setItem('role', r)
+      sessionStorage.setItem('token', t)
+      sessionStorage.setItem('role', r)
       setToken(t)
       setRole(r)
     }} />
@@ -117,8 +117,8 @@ export default function App() {
     }`
 
   function logout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('role')
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('role')
     setToken(null)
     setRole(null)
   }
