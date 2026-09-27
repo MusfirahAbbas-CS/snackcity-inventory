@@ -6,7 +6,7 @@ import { ReceiptBody } from '../components/ReceiptBody'
 
 const money = (paisa: number) => `Rs ${(paisa / 100).toFixed(2)}`
 
-export default function OrdersPage() {
+export default function OrdersPage({ activeTab }: { activeTab: string }) {
   const [menu, setMenu] = useState<MenuItem[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [cart, setCart] = useState<CartLine[]>([])
@@ -173,14 +173,14 @@ export default function OrdersPage() {
           }
         }
       `}</style>
-
-      <h2 className="text-2xl font-bold">Orders and menu</h2>
+      
       {error && (
         <p role="alert" className="error-card mb-4">
           {error}
         </p>
       )}
 
+      {activeTab === 'orders' && (
       <div className="grid gap-6 lg:grid-cols-2">
         <div className={card}>
           <h3 className="mb-4 text-xl font-bold">Create order</h3>
@@ -291,8 +291,10 @@ export default function OrdersPage() {
           </button>
         </div>
       </div>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {activeTab === 'menu' && (
+      <div className="grid gap-6 lg:grid-cols-1">
         <form
           className={`${card} space-y-3`}
           onSubmit={e => {
@@ -380,7 +382,11 @@ export default function OrdersPage() {
             ))}
           </ul>
         </form>
+      </div>
+      )}
 
+      {activeTab === 'history' && (
+      <div className="grid gap-6 lg:grid-cols-1">
         <div className={card}>
           <h3 className="text-xl font-bold">Recent orders</h3>
           <ul className="divide-y divide-slate-700">
@@ -414,6 +420,7 @@ export default function OrdersPage() {
           </ul>
         </div>
       </div>
+      )}
 
       {receipt && (
         <div
@@ -464,5 +471,6 @@ export default function OrdersPage() {
     </section>
   )
 }
+
 
 
