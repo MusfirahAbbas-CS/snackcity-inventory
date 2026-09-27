@@ -1,19 +1,19 @@
-# Snack City POS & Inventory System
+# Snack City POS System
 
-A complete Point-of-Sale (POS) and Inventory Management system built for Snack City.
+A complete Point-of-Sale (POS) system built for Snack City.
 
 ## Features
 
 - **Point of Sale (POS):** Take orders, manage cart, calculate total and change due.
+- **Modern UI & Design:** Sleek side navigation bar with four tabs (Orders, Menu, Orders History, Settings) utilizing Lucide icons, plus an auto-sliding background of beautiful pizza photography from Unsplash.
 - **Thermal Printer Support:** Generates and prints cleanly formatted receipts (58mm or 80mm sizes) tailored for thermal printers.
 - **Order Management:** Daily resetting receipt numbers, order history, and delete options for cancelled orders.
 - **Menu Management:** Add, edit, or remove menu items with dynamic pricing (saved securely in the database).
-- **Inventory Tracking:** Record received/used stock, view low-stock alerts, and track movement history of raw ingredients.
 - **Customizable Settings:** Dynamic Light/Dark themes, configurable restaurant details (name, address, contact, email, website), and optional customer names on receipts.
 
 ## Tech Stack
 
-- **Frontend:** React, TypeScript, Tailwind CSS, Vite
+- **Frontend:** React, TypeScript, Tailwind CSS, Vite, Lucide Icons
 - **Backend:** Python, FastAPI, SQLite (local database `inventory.db`)
 
 ## Quick Start (Windows)
