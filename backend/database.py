@@ -1,8 +1,19 @@
 import sqlite3
+import sys
+import os
 from contextlib import contextmanager
 from pathlib import Path
 
-DB = Path(__file__).with_name('inventory.db')
+# --- CRITICAL FIX FOR PYINSTALLER DATABASE ---
+if getattr(sys, 'frozen', False):
+    # If running as the compiled .exe, save the DB next to the .exe file
+    DB_DIR = Path(sys.executable).parent
+else:
+    # If running normally (development), save it next to this file
+    DB_DIR = Path(__file__).parent
+
+DB = DB_DIR / 'inventory.db'
+# ---------------------------------------------
 
 @contextmanager
 def db():

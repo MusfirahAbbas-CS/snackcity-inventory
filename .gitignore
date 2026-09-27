@@ -10,3 +10,12 @@ backend/inventory.db
 __pycache__/
 *.py[cod]
 *$py.class
+
+# PyInstaller artifacts
+backend/build/
+backend/dist/
+backend/*.spec
+
+# Conda environments
+win7_env/
+backend/win7_env/

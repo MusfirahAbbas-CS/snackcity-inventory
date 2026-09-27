@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 class ItemInput(BaseModel):
@@ -22,7 +22,7 @@ class OrderLineInput(BaseModel):
     quantity: int = Field(gt=0, le=1000)
 
 class OrderInput(BaseModel):
-    lines: list[OrderLineInput] = Field(min_length=1)
+    lines: List[OrderLineInput] = Field(min_length=1)
     amount_tendered_paisa: int = Field(ge=0)
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
