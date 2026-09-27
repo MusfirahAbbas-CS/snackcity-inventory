@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,7 +61,8 @@ with db() as conn:
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY,
             created_at TEXT NOT NULL,
-            total_paisa INTEGER NOT NULL CHECK(total_paisa >= 0)
+            total_paisa INTEGER NOT NULL CHECK(total_paisa >= 0),
+            amount_tendered_paisa INTEGER NOT NULL DEFAULT 0 CHECK(amount_tendered_paisa >= 0)
         );
         CREATE TABLE IF NOT EXISTS order_lines (
             id INTEGER PRIMARY KEY,
@@ -70,6 +72,10 @@ with db() as conn:
             quantity INTEGER NOT NULL CHECK(quantity > 0),
             unit_price_paisa INTEGER NOT NULL CHECK(unit_price_paisa >= 0),
             line_total_paisa INTEGER NOT NULL CHECK(line_total_paisa >= 0)
+        );
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
         );
     ''')
 
@@ -183,10 +189,16 @@ def create_menu_item(data: MenuItemInput):
             cursor = conn.execute('''
                 INSERT INTO menu_items (name, price_paisa) VALUES (?, ?)
             ''', (name, data.price_paisa))
+            item_id = cursor.lastrowid
         except sqlite3.IntegrityError:
-            raise HTTPException(409, 'This menu item name already exists')
+            existing = conn.execute('SELECT id, active FROM menu_items WHERE name = ?', (name,)).fetchone()
+            if existing and not existing['active']:
+                conn.execute('UPDATE menu_items SET active = 1, price_paisa = ? WHERE id = ?', (data.price_paisa, existing['id']))
+                item_id = existing['id']
+            else:
+                raise HTTPException(409, 'This menu item name already exists')
         return menu_row(conn.execute(
-            'SELECT * FROM menu_items WHERE id = ?', (cursor.lastrowid,)
+            'SELECT * FROM menu_items WHERE id = ?', (item_id,)
         ).fetchone())
 
 
@@ -229,6 +241,8 @@ class OrderLineInput(BaseModel):
 
 class OrderInput(BaseModel):
     lines: list[OrderLineInput] = Field(min_length=1)
+    amount_tendered_paisa: int = Field(ge=0)
+    customer_name: Optional[str] = None
 
 
 def order_detail(conn, order_id: int):
@@ -248,23 +262,28 @@ def create_order(data: OrderInput):
     if len({line.menu_item_id for line in data.lines}) != len(data.lines):
         raise HTTPException(422, 'Add each menu item only once per order')
     with db() as conn:
-        # The transaction prevents partly saved receipts.
         conn.execute('BEGIN IMMEDIATE')
         snapshots = []
         total_paisa = 0
         for line in data.lines:
-            item = conn.execute('''
-                SELECT id, name, price_paisa FROM menu_items
-                WHERE id = ? AND active = 1
-            ''', (line.menu_item_id,)).fetchone()
+            item = conn.execute('SELECT id, name, price_paisa FROM menu_items WHERE id = ? AND active = 1', (line.menu_item_id,)).fetchone()
             if item is None:
                 raise HTTPException(422, f'Menu item {line.menu_item_id} is unavailable')
             line_total = item['price_paisa'] * line.quantity
             total_paisa += line_total
             snapshots.append((item['id'], item['name'], line.quantity, item['price_paisa'], line_total))
+        
+        if data.amount_tendered_paisa < total_paisa:
+            raise HTTPException(422, 'Amount tendered cannot be less than total')
+
+        now = datetime.now(timezone.utc).isoformat()
+        today = now[:10]
+        max_daily = conn.execute('SELECT MAX(daily_number) FROM orders WHERE date(created_at) = ?', (today,)).fetchone()[0] or 0
+        daily_number = max_daily + 1
+
         cursor = conn.execute('''
-            INSERT INTO orders (created_at, total_paisa) VALUES (?, ?)
-        ''', (datetime.now(timezone.utc).isoformat(), total_paisa))
+            INSERT INTO orders (created_at, total_paisa, amount_tendered_paisa, daily_number, customer_name) VALUES (?, ?, ?, ?, ?)
+        ''', (now, total_paisa, data.amount_tendered_paisa, daily_number, data.customer_name))
         order_id = cursor.lastrowid
         conn.executemany('''
             INSERT INTO order_lines
@@ -286,3 +305,58 @@ def list_orders():
 def get_order(order_id: int):
     with db() as conn:
         return order_detail(conn, order_id)
+
+class AppSettingsInput(BaseModel):
+    restaurant_name: str = Field(default="Snack City")
+    address: str = Field(default="")
+    contact: str = Field(default="")
+    email: str = Field(default="")
+    website: str = Field(default="")
+    theme: str = Field(default="light")
+    receipt_size: str = Field(default="80mm")
+    ask_customer_name: str = Field(default="false")
+
+@app.get('/api/settings')
+def get_settings():
+    with db() as conn:
+        rows = conn.execute('SELECT key, value FROM settings').fetchall()
+        settings = {row['key']: row['value'] for row in rows}
+        return {
+            'restaurant_name': settings.get('restaurant_name', 'Snack City'),
+            'address': settings.get('address', ''),
+            'contact': settings.get('contact', ''),
+            'email': settings.get('email', ''),
+            'website': settings.get('website', ''),
+            'theme': settings.get('theme', 'dark'),
+            'receipt_size': settings.get('receipt_size', '80mm'),
+            'ask_customer_name': settings.get('ask_customer_name', 'false'),
+        }
+
+@app.put('/api/settings')
+def update_settings(data: AppSettingsInput):
+    with db() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        for k, v in data.model_dump().items():
+            conn.execute('''
+                INSERT INTO settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value
+            ''', (k, str(v)))
+        return get_settings()
+
+
+
+@app.delete('/api/orders/{order_id}')
+def delete_order(order_id: int):
+    with db() as conn:
+        cursor = conn.execute('DELETE FROM orders WHERE id = ?', (order_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(404, 'Order not found')
+        conn.execute('DELETE FROM order_lines WHERE order_id = ?', (order_id,))
+        return {'message': 'Order deleted'}
+
+
+
+
+
+
+

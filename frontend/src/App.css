@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body { @apply bg-[#0b111b] text-slate-100 antialiased; }
+body.theme-light { @apply bg-slate-100 text-slate-900; }
+
+input, select { @apply w-full rounded-lg border border-slate-600 bg-[#111d2b] px-3 py-2 text-slate-100 outline-none placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-500/30; }
+.theme-light input, .theme-light select { @apply border-slate-300 bg-white text-slate-900 placeholder:text-slate-400; }
+
+button { @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-600; }
+
+label { @apply block text-sm font-medium text-slate-200; }
+.theme-light label { @apply text-slate-700; }
+
+.hero-photo { background: linear-gradient(90deg, rgba(9,15,24,.98) 0%, rgba(9,15,24,.88) 45%, rgba(9,15,24,.42) 100%), url('/images/hero-food.webp') center 45% / cover; color: white; }
+.theme-light .hero-photo { background: linear-gradient(90deg, rgba(255,255,255,.98) 0%, rgba(255,255,255,.88) 45%, rgba(255,255,255,.42) 100%), url('/images/hero-food.webp') center 45% / cover; border-color: rgba(0,0,0,0.1); color: #1e293b; }
+
+.ambient-photo { background: linear-gradient(rgba(11,17,27,.92), rgba(11,17,27,.95)), url('/images/ingredients.webp') center / cover fixed; }
+
+.surface-card { @apply rounded-xl border border-white/10 bg-[#142131]/95 p-5 shadow-xl shadow-black/10; }
+.theme-light .surface-card { @apply border-slate-300 bg-white text-slate-900; }
+
+.table-header { @apply bg-[#1d2d40] text-slate-300; }
+.theme-light .table-header { @apply bg-slate-200 text-slate-700 border-b border-slate-300; }
+
+.surface-item { @apply rounded-lg border border-slate-600 bg-[#1d2d40] p-3 hover:border-orange-400; }
+.theme-light .surface-item { @apply border-slate-300 bg-slate-50 hover:border-orange-500; }
+
+.nav-tab { @apply rounded-lg px-4 py-2 font-semibold bg-[#142131] text-slate-200; }
+.theme-light .nav-tab { @apply bg-white text-slate-700 border border-slate-300; }
+.nav-tab.active { @apply bg-orange-600 text-white border-transparent; }
+.theme-light .nav-tab.active { @apply bg-orange-600 text-white border-transparent; }
+
+.error-card { @apply rounded-lg border border-red-500/40 bg-red-950/70 p-4 text-red-100; }
+.theme-light .error-card { @apply border-red-200 bg-red-50 text-red-900; }
+
+.outline-btn { @apply rounded-lg border border-slate-600 px-3 py-2 hover:bg-slate-700 disabled:opacity-50; }
+.theme-light .outline-btn { @apply border-slate-300 hover:bg-slate-200 text-slate-900; }
+
+.table-row { @apply border-t border-slate-700/70; }
+.theme-light .table-row { @apply border-slate-300; }

@@ -1,27 +1,52 @@
-# Snack City inventory prototype
+# Snack City POS & Inventory System
 
-A dark-themed standalone React + Tailwind CSS + Vite + PostCSS frontend and FastAPI + SQLite backend. Features: add ingredients, record received/used stock, show low-stock alerts, search inventory, and view recent activity. The food background images are in `frontend/public/images/`. Demo data is entered through the UI; no account or external service is required.
+A complete Point-of-Sale (POS) and Inventory Management system built for Snack City.
 
-## Run on Windows PowerShell
+## Features
 
-Terminal 1:
+- **Point of Sale (POS):** Take orders, manage cart, calculate total and change due.
+- **Thermal Printer Support:** Generates and prints cleanly formatted receipts (58mm or 80mm sizes) tailored for thermal printers.
+- **Order Management:** Daily resetting receipt numbers, order history, and delete options for cancelled orders.
+- **Menu Management:** Add, edit, or remove menu items with dynamic pricing (saved securely in the database).
+- **Inventory Tracking:** Record received/used stock, view low-stock alerts, and track movement history of raw ingredients.
+- **Customizable Settings:** Dynamic Light/Dark themes, configurable restaurant details (name, address, contact, email, website), and optional customer names on receipts.
 
-```powershell
+## Tech Stack
+
+- **Frontend:** React, TypeScript, Tailwind CSS, Vite
+- **Backend:** Python, FastAPI, SQLite (local database `inventory.db`)
+
+## Quick Start (Windows)
+
+We have created convenient batch scripts to set up and run the application.
+
+### 1. Setup
+Run these once to install all dependencies:
+- **Backend:** Double-click `setup_backend.bat`
+- **Frontend:** Double-click `setup_frontend.bat`
+
+### 2. Run the App
+- **Backend:** Double-click `run_backend.bat` (Starts the API on `http://127.0.0.1:8000`)
+- **Frontend:** Double-click `run_frontend.bat` (Starts the UI on `http://localhost:5173`)
+
+*Note: The backend must be running for the frontend to save and load data.*
+
+## Manual Setup (macOS/Linux)
+
+**Backend:**
+```bash
 cd backend
-py -m venv .venv
-.venv\Scripts\Activate.ps1
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Terminal 2:
-
-```powershell
+**Frontend:**
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173. API docs: http://127.0.0.1:8000/docs.
-
-On macOS/Linux, activate Python with `source .venv/bin/activate`, then use the same pip and uvicorn commands. Data persists in `backend/inventory.db`. This is a local demo: add authentication, permissions, a production database, and decimal or integer stock units before operational use.
+Open `http://localhost:5173` to view the app. API docs are available at `http://127.0.0.1:8000/docs`. Data persists locally in `backend/inventory.db`.

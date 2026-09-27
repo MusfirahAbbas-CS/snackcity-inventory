@@ -1,42 +1,12 @@
 import { useEffect, useState } from 'react'
-
-type MenuItem = { id: number; name: string; price_paisa: number }
-type Line = {
-  menu_item_id: number
-  item_name: string
-  quantity: number
-  unit_price_paisa: number
-  line_total_paisa: number
-}
-type Order = {
-  id: number
-  created_at: string
-  total_paisa: number
-  lines: Line[]
-}
-type CartLine = { menu_item_id: number; quantity: number }
+import { useSettings } from '../hooks/useSettings'
+import { MenuItem, Line, Order, CartLine } from '../types'
+import { api } from '../utils/api'
+import { ReceiptBody } from '../components/ReceiptBody'
 
 const money = (paisa: number) => `Rs ${(paisa / 100).toFixed(2)}`
 
-async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json' },
-  })
-  const body = await response.json().catch(() => null)
-
-  if (!response.ok) {
-    throw new Error(
-      typeof body?.detail === 'string'
-        ? body.detail
-        : 'Request failed. Check the backend.',
-    )
-  }
-
-  return body as T
-}
-
-export default function OrderManagement() {
+export default function OrdersPage() {
   const [menu, setMenu] = useState<MenuItem[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [cart, setCart] = useState<CartLine[]>([])
@@ -47,12 +17,15 @@ export default function OrderManagement() {
   const [editing, setEditing] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [amountTendered, setAmountTendered] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const settings = useSettings()
 
-  const card = 'rounded-xl border border-white/10 bg-[#142131]/95 p-5 shadow-xl'
+  const isLight = settings?.theme === 'light'
+  const card = 'surface-card'
   const button =
     'rounded-lg bg-orange-600 px-4 py-2 font-semibold text-white hover:bg-orange-700 disabled:opacity-50'
-  const outline =
-    'rounded-lg border border-slate-600 px-3 py-2 hover:bg-slate-700 disabled:opacity-50'
+  const outline = 'outline-btn'
 
   async function refresh() {
     const [nextMenu, nextOrders] = await Promise.all([
@@ -145,11 +118,17 @@ export default function OrderManagement() {
 
     const saved = await api<Order>('/orders', {
       method: 'POST',
-      body: JSON.stringify({ lines: cart }),
+      body: JSON.stringify({ 
+        lines: cart,
+        amount_tendered_paisa: Math.round(Number(amountTendered) * 100) || total,
+        customer_name: (settings?.ask_customer_name === 'true' && customerName.trim()) ? customerName.trim() : null
+      }),
     })
 
     setReceipt(saved)
     setCart([])
+    setAmountTendered('')
+    setCustomerName('')
     await refresh()
   }
 
@@ -159,8 +138,16 @@ export default function OrderManagement() {
     })
   }
 
+  async function deleteOrder(id: number) {
+    if (!window.confirm('Delete this order?')) return
+    await run(async () => {
+      await api(`/orders/${id}`, { method: 'DELETE' })
+      await refresh()
+    })
+  }
+
   return (
-    <section className="space-y-6 text-slate-100">
+    <section className={`space-y-6 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
       <style>{`
         @media print {
           @page { margin: 0; }
@@ -189,7 +176,7 @@ export default function OrderManagement() {
 
       <h2 className="text-2xl font-bold">Orders and menu</h2>
       {error && (
-        <p role="alert" className="rounded-lg bg-red-950 p-3 text-red-100">
+        <p role="alert" className="error-card mb-4">
           {error}
         </p>
       )}
@@ -206,7 +193,7 @@ export default function OrderManagement() {
             {menu.map(item => (
               <button
                 key={item.id}
-                className="rounded-lg border border-slate-600 bg-[#1d2d40] p-3 text-left hover:border-orange-400"
+                className="surface-item text-left"
                 onClick={() => add(item)}
               >
                 <strong className="block">{item.name}</strong>
@@ -266,6 +253,35 @@ export default function OrderManagement() {
             <span>Total</span>
             <span>{money(total)}</span>
           </p>
+
+          {settings?.ask_customer_name === 'true' && (
+            <div className="mt-4 flex flex-col gap-1">
+              <label htmlFor="customerName" className="font-semibold">Customer Name (Optional)</label>
+              <input 
+                id="customerName"
+                type="text" 
+                value={customerName} 
+                onChange={e => setCustomerName(e.target.value)}
+                className="mt-1"
+                placeholder="e.g. John Doe"
+              />
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center justify-between">
+            <label htmlFor="amountTendered" className="font-semibold">Paid Amount</label>
+            <input 
+              id="amountTendered"
+              type="number" 
+              step="0.01" 
+              min={(total/100).toString()}
+              value={amountTendered} 
+              onChange={e => setAmountTendered(e.target.value)}
+              className="text-right w-32"
+              placeholder={(total/100).toFixed(2)}
+            />
+          </div>
+
           <button
             disabled={busy || !cart.length}
             className={`mt-4 w-full ${button}`}
@@ -374,16 +390,25 @@ export default function OrderManagement() {
                 className="flex flex-wrap items-center justify-between gap-2 py-3"
               >
                 <span>
-                  #{order.id} ·{' '}
+                  #{order.daily_number} ·{' '}
                   {new Date(order.created_at).toLocaleString()}
+                  {order.customer_name && ` · ${order.customer_name}`}
                 </span>
                 <strong>{money(order.total_paisa)}</strong>
-                <button
-                  className={outline}
-                  onClick={() => viewReceipt(order.id)}
-                >
-                  Receipt
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className={outline}
+                    onClick={() => viewReceipt(order.id)}
+                  >
+                    Receipt
+                  </button>
+                  <button
+                    className={outline + " text-red-500 hover:text-red-400 border-red-500 hover:border-red-400"}
+                    onClick={() => deleteOrder(order.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -400,29 +425,17 @@ export default function OrderManagement() {
             onClick={e => e.stopPropagation()}
           >
             <div className="mb-3 flex justify-between text-white">
-              <label htmlFor="paper-size">Paper width</label>
-              <select
-                id="paper-size"
-                className="w-auto"
-                value={paper}
-                onChange={e =>
-                  setPaper(e.target.value as '58mm' | '80mm')
-                }
-              >
-                <option value="58mm">58 mm</option>
-                <option value="80mm">80 mm</option>
-              </select>
             </div>
 
             <div
               className="mx-auto bg-white p-3 text-sm text-black"
               style={{
-                width: paper,
+                width: settings?.receipt_size || paper,
                 maxWidth: '100%',
                 boxSizing: 'border-box',
               }}
             >
-              <ReceiptBody order={receipt} />
+              <ReceiptBody order={receipt} settings={settings} />
             </div>
 
             <div className="mt-4 flex justify-center gap-2">
@@ -445,44 +458,11 @@ export default function OrderManagement() {
 
       {receipt && (
         <div className="print-receipt hidden">
-          <ReceiptBody order={receipt} />
+          <ReceiptBody order={receipt} settings={settings} />
         </div>
       )}
     </section>
   )
 }
 
-function ReceiptBody({ order }: { order: Order }) {
-  return (
-    <div className="text-sm">
-      <div className="text-center">
-        <strong className="text-lg">SNACK CITY</strong>
-        <p>Order receipt</p>
-        <p>
-          #{order.id} ·{' '}
-          {new Date(order.created_at).toLocaleString()}
-        </p>
-      </div>
 
-      <div className="my-3 border-t border-dashed border-black" />
-
-      {order.lines.map((line, index) => (
-        <div className="mb-2" key={index}>
-          <strong className="break-words">{line.item_name}</strong>
-          <div className="flex justify-between gap-1">
-            <span>
-              {line.quantity} × {money(line.unit_price_paisa)}
-            </span>
-            <span>{money(line.line_total_paisa)}</span>
-          </div>
-        </div>
-      ))}
-
-      <div className="mt-3 flex justify-between border-t border-dashed border-black pt-2 font-bold">
-        <span>TOTAL</span>
-        <span>{money(order.total_paisa)}</span>
-      </div>
-      <p className="mt-4 text-center">Thank you!</p>
-    </div>
-  )
-}
