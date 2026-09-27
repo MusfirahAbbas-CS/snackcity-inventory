@@ -3,6 +3,8 @@ import { useSettings } from '../hooks/useSettings'
 import { MenuItem, Line, Order, CartLine } from '../types'
 import { api } from '../utils/api'
 import { ReceiptBody } from '../components/ReceiptBody'
+import { KitchenReceiptBody } from '../components/KitchenReceiptBody'
+import { ConfirmModal } from '../components/ConfirmModal'
 
 const money = (paisa: number) => `Rs ${(paisa / 100).toFixed(2)}`
 
@@ -19,6 +21,10 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
   const [busy, setBusy] = useState(false)
   const [amountTendered, setAmountTendered] = useState('')
   const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [menuSearch, setMenuSearch] = useState('')
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', action: () => {} })
+  const [menuManageSearch, setMenuManageSearch] = useState('')
   const settings = useSettings()
 
   const isLight = settings?.theme === 'light'
@@ -74,6 +80,8 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
     )
   }
 
+  const filteredMenu = menu.filter(item => item.name.toLowerCase().includes(menuSearch.toLowerCase()))
+
   const total = cart.reduce(
     (sum, line) =>
       sum +
@@ -102,7 +110,7 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
   }
 
   async function remove(item: MenuItem) {
-    if (!window.confirm(`Remove ${item.name} from the menu?`)) return
+    
 
     await run(async () => {
       await api(`/menu-items/${item.id}`, { method: 'DELETE' })
@@ -121,7 +129,8 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
       body: JSON.stringify({ 
         lines: cart,
         amount_tendered_paisa: Math.round(Number(amountTendered) * 100) || total,
-        customer_name: (settings?.ask_customer_name === 'true' && customerName.trim()) ? customerName.trim() : null
+        customer_name: customerName.trim() ? customerName.trim() : null,
+        customer_phone: customerPhone.trim() ? customerPhone.trim() : null
       }),
     })
 
@@ -129,7 +138,22 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
     setCart([])
     setAmountTendered('')
     setCustomerName('')
+    setCustomerPhone('')
     await refresh()
+  }
+
+  async function printReceipt(orderId: number) {
+    if (localStorage.getItem('role') === 'staff' && receipt?.printed === 1) {
+       setError("Receipt has already been printed once.");
+       return;
+    }
+    try {
+      const updated = await api<Order>(`/orders/${orderId}/print`, { method: 'POST' });
+      setReceipt(updated);
+      window.print();
+    } catch (e: any) {
+      setError(e.message);
+    }
   }
 
   async function viewReceipt(id: number) {
@@ -139,7 +163,6 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
   }
 
   async function deleteOrder(id: number) {
-    if (!window.confirm('Delete this order?')) return
     await run(async () => {
       await api(`/orders/${id}`, { method: 'DELETE' })
       await refresh()
@@ -161,7 +184,7 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
           }
           .print-receipt {
             display: block !important;
-            position: fixed !important;
+            position: absolute !important;
             top: 0;
             left: 0;
             width: ${paper} !important;
@@ -184,13 +207,20 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className={card}>
           <h3 className="mb-4 text-xl font-bold">Create order</h3>
+          <input 
+            type="text" 
+            placeholder="Search menu..." 
+            value={menuSearch} 
+            onChange={e => setMenuSearch(e.target.value)} 
+            className="w-full bg-slate-900 border border-slate-700 p-2 rounded mb-4"
+          />
           {menu.length === 0 && (
             <p className="text-slate-400">
               Add a menu item below to start.
             </p>
           )}
           <div className="grid gap-2 sm:grid-cols-2">
-            {menu.map(item => (
+            {filteredMenu.map(item => (
               <button
                 key={item.id}
                 className="surface-item text-left"
@@ -254,19 +284,30 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
             <span>{money(total)}</span>
           </p>
 
-          {settings?.ask_customer_name === 'true' && (
-            <div className="mt-4 flex flex-col gap-1">
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
               <label htmlFor="customerName" className="font-semibold">Customer Name (Optional)</label>
               <input 
                 id="customerName"
                 type="text" 
                 value={customerName} 
                 onChange={e => setCustomerName(e.target.value)}
-                className="mt-1"
+                className="mt-1 bg-slate-900 border border-slate-700 p-2 rounded"
                 placeholder="e.g. John Doe"
               />
             </div>
-          )}
+            <div className="flex flex-col gap-1">
+              <label htmlFor="customerPhone" className="font-semibold">Phone Number (Optional)</label>
+              <input 
+                id="customerPhone"
+                type="text" 
+                value={customerPhone} 
+                onChange={e => setCustomerPhone(e.target.value)}
+                className="mt-1 bg-slate-900 border border-slate-700 p-2 rounded"
+                placeholder="e.g. 0300..."
+              />
+            </div>
+          </div>
 
           <div className="mt-4 flex items-center justify-between">
             <label htmlFor="amountTendered" className="font-semibold">Paid Amount</label>
@@ -294,7 +335,7 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
       )}
 
       {activeTab === 'menu' && (
-      <div className="grid gap-6 lg:grid-cols-1">
+      <div className="space-y-6">
         <form
           className={`${card} space-y-3`}
           onSubmit={e => {
@@ -305,62 +346,74 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
           <h3 className="text-xl font-bold">
             {editing === null ? 'Add menu item' : 'Edit menu item'}
           </h3>
-
-          <label>
-            Name
-            <input
-              required
-              className="mt-1"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Pizza or Burger"
-            />
-          </label>
-
-          <label>
-            Price (Rs)
-            <input
-              required
-              className="mt-1"
-              type="number"
-              min="0"
-              step="0.01"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
-            />
-          </label>
-
-          <button disabled={busy} className={button}>
-            {editing === null ? 'Add item' : 'Save changes'}
-          </button>
-
-          {editing !== null && (
-            <button
-              type="button"
-              className={`ml-2 ${outline}`}
-              onClick={() => {
-                setEditing(null)
-                setName('')
-                setPrice('')
-              }}
-            >
-              Cancel
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              Name
+              <input
+                required
+                className="mt-1"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Large BBQ Pizza"
+              />
+            </label>
+            <label className="block">
+              Price (Rs)
+              <input
+                required
+                className="mt-1"
+                type="number"
+                min="0"
+                step="0.01"
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                placeholder="0.00"
+              />
+            </label>
+          </div>
+          <div className="pt-2 flex gap-2">
+            <button disabled={busy} className={button}>
+              {editing === null ? 'Add item' : 'Save changes'}
             </button>
-          )}
-
-          <ul className="divide-y divide-slate-700">
-            {menu.map(item => (
-              <li
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-2 py-3"
+            {editing !== null && (
+              <button
+                type="button"
+                className={outline}
+                onClick={() => {
+                  setEditing(null)
+                  setName('')
+                  setPrice('')
+                }}
               >
-                <span>
-                  {item.name} · {money(item.price_paisa)}
-                </span>
-                <span className="flex gap-2">
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+
+        <div className={card}>
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <h3 className="text-xl font-bold">Menu Items</h3>
+            <input 
+              type="text" 
+              placeholder="Search items..." 
+              value={menuManageSearch} 
+              onChange={e => setMenuManageSearch(e.target.value)} 
+              className="w-full sm:max-w-xs"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {menu.filter(item => item.name.toLowerCase().includes(menuManageSearch.toLowerCase())).map(item => (
+              <div key={item.id} className="surface-item flex flex-col justify-between shadow-lg h-full p-4">
+                <div>
+                  <h4 className="text-lg font-bold">{item.name}</h4>
+                  <p className="text-orange-500 font-bold mt-1 text-xl">{money(item.price_paisa)}</p>
+                </div>
+                <div className="mt-5 flex gap-2">
                   <button
                     type="button"
-                    className={outline}
+                    className={`${outline} flex-1 text-sm py-2`}
                     onClick={() => {
                       setEditing(item.id)
                       setName(item.name)
@@ -372,18 +425,25 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
                   <button
                     type="button"
                     disabled={busy}
-                    className={outline}
-                    onClick={() => remove(item)}
+                    className={`${outline} flex-1 text-sm py-2 !border-red-500/50 !text-red-500 hover:!bg-red-500/10`}
+                    onClick={() => setConfirmDialog({ isOpen: true, title: 'Remove Item', message: `Are you sure you want to remove ${item.name} from the menu?`, action: () => remove(item) })}
                   >
-                    Remove
+                    Delete
                   </button>
-                </span>
-              </li>
+                </div>
+              </div>
             ))}
-          </ul>
-        </form>
+            {menu.filter(item => item.name.toLowerCase().includes(menuManageSearch.toLowerCase())).length === 0 && (
+              <div className="col-span-full py-8 text-center opacity-70">
+                No items found matching your search.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       )}
+
+
 
       {activeTab === 'history' && (
       <div className="grid gap-6 lg:grid-cols-1">
@@ -410,7 +470,7 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
                   </button>
                   <button
                     className={outline + " text-red-500 hover:text-red-400 border-red-500 hover:border-red-400"}
-                    onClick={() => deleteOrder(order.id)}
+                    onClick={() => setConfirmDialog({ isOpen: true, title: 'Delete Order', message: 'Are you sure you want to permanently delete this order?', action: () => deleteOrder(order.id) })}
                   >
                     Delete
                   </button>
@@ -445,13 +505,27 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
               <ReceiptBody order={receipt} settings={settings} />
             </div>
 
+            <div
+              className="mx-auto mt-4 bg-white p-3 text-sm text-black"
+              style={{
+                width: settings?.receipt_size || paper,
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              <KitchenReceiptBody order={receipt} settings={settings} />
+            </div>
+
             <div className="mt-4 flex justify-center gap-2">
-              <button
-                className={button}
-                onClick={() => window.print()}
-              >
-                Print
-              </button>
+              {activeTab !== 'history' && (
+                <button
+                  className={button}
+                  onClick={() => printReceipt(receipt.id)}
+                  disabled={localStorage.getItem('role') === 'staff' && receipt.printed === 1}
+                >
+                  {localStorage.getItem('role') === 'staff' && receipt.printed === 1 ? 'Already Printed' : 'Print'}
+                </button>
+              )}
               <button
                 className={outline}
                 onClick={() => setReceipt(null)}
@@ -465,9 +539,21 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
 
       {receipt && (
         <div className="print-receipt hidden">
-          <ReceiptBody order={receipt} settings={settings} />
+          <div className="receipt-section">
+            <ReceiptBody order={receipt} settings={settings} />
+          </div>
+          <div style={{ pageBreakBefore: 'always', marginTop: '20px' }} className="receipt-section">
+            <KitchenReceiptBody order={receipt} settings={settings} />
+          </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.action}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
     </section>
   )
 }

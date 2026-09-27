@@ -20,6 +20,7 @@ export function ReceiptBody({ order, settings }: { order: Order, settings: AppSe
           {new Date(order.created_at).toLocaleString()}
         </p>
         {order.customer_name && <p>Customer: {order.customer_name}</p>}
+        {order.customer_phone && <p>Phone: {order.customer_phone}</p>}
       </div>
 
       <div className="my-3 border-t border-dashed border-black" />

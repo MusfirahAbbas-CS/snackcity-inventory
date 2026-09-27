@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { AppSettings } from '../types'
+import { api } from '../utils/api'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -7,8 +8,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.json())
+    api<AppSettings>('/settings')
       .then(setSettings)
       .catch(e => setMessage(e.message))
   }, [])
@@ -18,13 +18,11 @@ export default function SettingsPage() {
     setBusy(true)
     setMessage('')
     try {
-      const res = await fetch('/api/settings', {
+      const res = await api<AppSettings>('/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       })
-      if (!res.ok) throw new Error('Failed to save settings')
-      setSettings(await res.json())
+      setSettings(res)
       setMessage('Settings saved successfully.')
       setTimeout(() => window.location.reload(), 1000)
     } catch (e: any) {
@@ -45,6 +43,14 @@ export default function SettingsPage() {
       <h2 className="text-xl font-bold">App Settings</h2>
       {message && <p className="text-green-400">{message}</p>}
       
+      <div>
+        <label>Admin Password</label>
+        <input required type="password" placeholder="Change admin password" className={inputClass} value={settings.admin_password || ''} onChange={e => setSettings({...settings, admin_password: e.target.value})} />
+      </div>
+      <div>
+        <label>Restaurant Name</label>
+        <input required className={inputClass} value={settings.restaurant_name} onChange={e => setSettings({...settings, restaurant_name: e.target.value})} />
+      </div>
       <div>
         <label>Contact</label>
         <input required className={inputClass} value={settings.contact} onChange={e => setSettings({...settings, contact: e.target.value})} />

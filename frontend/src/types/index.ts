@@ -5,6 +5,7 @@ export type Item = {
   unit: string
   quantity: number
   reorder_level: number
+  price_paisa: number
 }
 
 export type Movement = {
@@ -28,6 +29,8 @@ export type Order = {
   id: number
   daily_number: number
   customer_name?: string
+  customer_phone?: string
+  printed: number
   created_at: string
   total_paisa: number
   amount_tendered_paisa: number
@@ -44,4 +47,5 @@ export type AppSettings = {
   receipt_size: '58mm' | '80mm'
   theme: 'light' | 'dark'
   ask_customer_name: string
+  admin_password?: string
 }

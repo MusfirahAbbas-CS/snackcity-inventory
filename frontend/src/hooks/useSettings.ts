@@ -15,8 +15,8 @@ export function useSettings() {
   })
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.json())
+    api<AppSettings>('/settings')
+      
       .then(s => {
         setSettings(s)
         if (s.theme === 'light') {
