@@ -1,7 +1,12 @@
 frontend/node_modules/
 frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
 backend/.venv/
 backend/venv/
-backend/__pycache__/
 backend/inventory.db
-frontend/tsconfig.tsbuildinfo
+
+# Global Python ignores
+__pycache__/
+*.py[cod]
+*$py.class
