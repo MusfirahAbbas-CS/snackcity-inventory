@@ -16,15 +16,20 @@ def list_menu_items():
 @router.post("", status_code=201, dependencies=[Depends(require_admin)])
 def create_menu_item(data: MenuItemInput):
     name = clean_name(data.name)
-    try:
-        with db() as conn:
+    with db() as conn:
+        existing = conn.execute('SELECT id, active FROM menu_items WHERE name = ?', (name,)).fetchone()
+        if existing:
+            if existing['active'] == 1:
+                raise HTTPException(409, f'Menu item "{name}" already exists')
+            else:
+                conn.execute('UPDATE menu_items SET active = 1, price_paisa = ? WHERE id = ?', (data.price_paisa, existing['id']))
+                return {'id': existing['id']}
+        else:
             cursor = conn.execute(
                 'INSERT INTO menu_items (name, price_paisa) VALUES (?, ?)',
                 (name, data.price_paisa)
             )
             return {'id': cursor.lastrowid}
-    except sqlite3.IntegrityError:
-        raise HTTPException(409, f'Menu item "{name}" already exists')
 
 @router.put("/{menu_item_id}", dependencies=[Depends(require_admin)])
 def update_menu_item(menu_item_id: int, data: MenuItemInput):

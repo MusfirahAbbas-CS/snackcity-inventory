@@ -1,17 +1,42 @@
 import React, { useEffect, useState } from 'react'
 import { AppSettings } from '../types'
 import { api } from '../utils/api'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     api<AppSettings>('/settings')
       .then(setSettings)
       .catch(e => setMessage(e.message))
   }, [])
+
+  async function savePassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newPassword) return
+    setBusy(true)
+    setMessage('')
+    try {
+      const res = await api<AppSettings>('/settings', {
+        method: 'PUT',
+        body: JSON.stringify({...settings, admin_password: newPassword}),
+      })
+      setSettings(res)
+      setMessage('Admin password updated successfully.')
+      setShowPasswordModal(false)
+      setNewPassword('')
+    } catch (e: any) {
+      setMessage(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -39,14 +64,20 @@ export default function SettingsPage() {
   const cardClass = 'surface-card max-w-2xl mx-auto space-y-4'
 
   return (
-    <form onSubmit={save} className={cardClass}>
-      <h2 className="text-xl font-bold">App Settings</h2>
+    <>
+      <form onSubmit={save} className={cardClass}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">App Settings</h2>
+        <button 
+          type="button" 
+          onClick={() => setShowPasswordModal(true)}
+          className="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-2 rounded-lg font-semibold border border-slate-600 transition-all shadow-sm active:bg-slate-800"
+        >
+          Change Password
+        </button>
+      </div>
       {message && <p className="text-green-400">{message}</p>}
       
-      <div>
-        <label>Admin Password</label>
-        <input required type="password" placeholder="Change admin password" className={inputClass} value={settings.admin_password || ''} onChange={e => setSettings({...settings, admin_password: e.target.value})} />
-      </div>
       <div>
         <label>Restaurant Name</label>
         <input required className={inputClass} value={settings.restaurant_name} onChange={e => setSettings({...settings, restaurant_name: e.target.value})} />
@@ -66,17 +97,6 @@ export default function SettingsPage() {
       <div>
         <label>Website (Optional)</label>
         <input className={inputClass} value={settings.website} onChange={e => setSettings({...settings, website: e.target.value})} />
-      </div>
-
-      <div className="flex items-center gap-2 pt-2">
-        <input 
-          type="checkbox" 
-          id="ask_customer_name" 
-          checked={settings.ask_customer_name === 'true'} 
-          onChange={e => setSettings({...settings, ask_customer_name: e.target.checked ? 'true' : 'false'})}
-          className="h-4 w-4 rounded border-slate-600 bg-[#111d2b] text-orange-600 focus:ring-orange-600 focus:ring-offset-slate-900" 
-        />
-        <label htmlFor="ask_customer_name" className="!mb-0 inline-block">Ask for customer name on receipt</label>
       </div>
       
       <div className="grid grid-cols-2 gap-4">
@@ -100,5 +120,54 @@ export default function SettingsPage() {
         Save Settings
       </button>
     </form>
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className={`${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-800 border-slate-700 text-slate-100'} p-6 rounded-xl w-full max-w-sm shadow-2xl border`}>
+            <h3 className="text-xl font-bold mb-4">Change Admin Password</h3>
+            <form onSubmit={savePassword}>
+              <div className="relative mb-6">
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="New Password" 
+                  required
+                  autoFocus
+                  className={`w-full p-3 rounded border outline-none pr-10 focus:ring-2 focus:ring-orange-500 ${
+                    isLight 
+                      ? 'bg-slate-50 border-slate-300 text-slate-800 placeholder-slate-400' 
+                      : 'bg-slate-900 border-slate-700 text-white'
+                  }`}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className={`absolute right-3 top-3 ${isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'} transition-colors`}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowPasswordModal(false)}
+                  className={`px-4 py-2 ${isLight ? 'text-slate-500 hover:text-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={busy || !newPassword}
+                  className="bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white px-4 py-2 rounded font-bold"
+                >
+                  Save Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

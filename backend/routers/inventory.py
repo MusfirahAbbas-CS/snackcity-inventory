@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from database import db
 from dependencies import require_admin
-from models import ItemInput, MovementInput
+from models import ItemInput, ItemUpdateInput, MovementInput
 
 router = APIRouter(prefix="/api/items", tags=["inventory"])
 
@@ -34,16 +34,16 @@ def create_item(data: ItemInput):
         raise HTTPException(409, f'Item "{name}" with unit "{unit}" already exists')
 
 @router.put("/{item_id}", dependencies=[Depends(require_admin)])
-def update_item(item_id: int, data: ItemInput):
+def update_item(item_id: int, data: ItemUpdateInput):
     name = clean_name(data.name)
     unit = clean_name(data.unit)
     try:
         with db() as conn:
             cursor = conn.execute('''
                 UPDATE items 
-                SET name = ?, category = ?, unit = ?, quantity = ?, reorder_level = ?, price_paisa = ?
+                SET name = ?, category = ?, unit = ?, reorder_level = ?, price_paisa = ?
                 WHERE id = ?
-            ''', (name, data.category, unit, data.quantity, data.reorder_level, data.price_paisa, item_id))
+            ''', (name, data.category, unit, data.reorder_level, data.price_paisa, item_id))
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Item not found')
             return {'message': 'Item updated'}
@@ -88,3 +88,11 @@ def list_movements(item_id: int):
             'SELECT * FROM movements WHERE item_id = ? ORDER BY id DESC LIMIT 50', 
             (item_id,)
         )]
+
+movements_router = APIRouter(prefix='/api/movements', tags=['inventory'])
+
+@movements_router.get('', dependencies=[Depends(require_admin)])
+def list_all_movements():
+    with db() as conn:
+        return [dict(row) for row in conn.execute('SELECT * FROM movements ORDER BY id DESC LIMIT 100')]
+

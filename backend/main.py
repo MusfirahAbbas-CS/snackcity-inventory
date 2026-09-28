@@ -24,6 +24,7 @@ app.add_middleware(
 # Include API Routers
 app.include_router(auth.router)
 app.include_router(inventory.router)
+app.include_router(inventory.movements_router)
 app.include_router(menu.router)
 app.include_router(orders.router)
 app.include_router(reports.router)

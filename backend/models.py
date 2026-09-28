@@ -9,6 +9,13 @@ class ItemInput(BaseModel):
     reorder_level: float = Field(ge=0)
     price_paisa: int = Field(default=0, ge=0)
 
+class ItemUpdateInput(BaseModel):
+    name: str = Field(min_length=1)
+    category: str = Field(min_length=1)
+    unit: str = Field(min_length=1)
+    reorder_level: float = Field(ge=0)
+    price_paisa: int = Field(default=0, ge=0)
+
 class MovementInput(BaseModel):
     change: float
     reason: str = Field(min_length=1)

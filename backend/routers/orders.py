@@ -53,7 +53,7 @@ def create_order(data: OrderInput):
         ''', [(order_id, *line) for line in snapshots])
         return order_detail(conn, order_id)
 
-@router.get("", dependencies=[Depends(require_admin)])
+@router.get("", dependencies=[Depends(require_staff_or_admin)])
 def list_orders():
     with db() as conn:
         return [dict(row) for row in conn.execute('''
@@ -65,7 +65,7 @@ def get_order(order_id: int):
     with db() as conn:
         return order_detail(conn, order_id)
 
-@router.delete("/{order_id}", dependencies=[Depends(require_admin)])
+@router.delete("/{order_id}", dependencies=[Depends(require_staff_or_admin)])
 def delete_order(order_id: int):
     with db() as conn:
         conn.execute('DELETE FROM order_lines WHERE order_id = ?', (order_id,))

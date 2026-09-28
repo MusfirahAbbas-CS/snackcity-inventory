@@ -4,24 +4,19 @@ import OrdersPage from './pages/OrdersPage'
 import SettingsPage from './pages/SettingsPage'
 import InventoryPage from './pages/InventoryPage'
 import ReportsPage from './pages/ReportsPage'
-import { ShoppingCart, Utensils, Settings, Clock, LogOut, Package, BarChart3 } from 'lucide-react'
+import { ShoppingCart, Utensils, Settings, Clock, LogOut, Package, BarChart3, Eye, EyeOff } from 'lucide-react'
 import { api } from './utils/api'
-
-const backgrounds = [
-  'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1920&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=1920&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=1920&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=1920&auto=format&fit=crop'
-]
 
 function LoginScreen({ setAuth }: { setAuth: (token: string, role: string) => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  async function handleLogin(role: 'admin' | 'staff') {
-    if (role === 'admin' && !password) {
-      setError('Password required for Admin')
+  async function handleLogin(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    if (!password) {
+      setError('Password required')
       return
     }
     setLoading(true)
@@ -29,7 +24,7 @@ function LoginScreen({ setAuth }: { setAuth: (token: string, role: string) => vo
     try {
       const res = await api<{token: string, role: string}>('/login', {
         method: 'POST',
-        body: JSON.stringify({ role, password })
+        body: JSON.stringify({ password })
       })
       setAuth(res.token, res.role)
     } catch (err: any) {
@@ -40,44 +35,42 @@ function LoginScreen({ setAuth }: { setAuth: (token: string, role: string) => vo
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-900 text-slate-100">
-      <div className="w-full max-w-md bg-slate-800 p-8 rounded-xl shadow-2xl">
-        <h1 className="text-3xl font-black text-center mb-8 text-orange-500">Snack City POS</h1>
-        {error && <p className="bg-red-500/20 text-red-400 p-3 rounded mb-4 text-sm">{error}</p>}
+    <div className="flex h-screen items-center justify-center bg-[#0a101a] text-slate-100">
+      
+      <div className="w-full max-w-md bg-slate-800/80 backdrop-blur-xl p-10 rounded-2xl shadow-2xl border border-white/10 z-10">
+        <div className="mb-10 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-orange-500 mb-2">Point of Sale</p>
+          <h1 className="text-4xl font-black text-white">Snack City</h1>
+        </div>
         
-        <div className="space-y-6">
-          <div>
-            <button 
-              disabled={loading}
-              onClick={() => handleLogin('staff')}
-              className="w-full bg-slate-700 hover:bg-slate-600 p-4 rounded-lg font-bold text-lg transition-colors"
-            >
-              Login as Staff
-            </button>
-          </div>
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-600"></div></div>
-            <div className="relative flex justify-center text-sm"><span className="bg-slate-800 px-2 text-slate-400">OR</span></div>
-          </div>
-
-          <div className="space-y-3">
+        {error && <p className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm text-center border border-red-500/30">{error}</p>}
+        
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2 relative">
             <input 
-              type="password" 
-              placeholder="Admin Password" 
+              type={showPassword ? 'text' : 'password'} 
+              placeholder="Password" 
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+              className="w-full bg-slate-900/80 border border-slate-700/80 text-white p-4 pr-12 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all placeholder:text-slate-500"
+              autoFocus
             />
-            <button 
-              disabled={loading}
-              onClick={() => handleLogin('admin')}
-              className="w-full bg-orange-600 hover:bg-orange-700 p-4 rounded-lg font-bold text-lg transition-colors"
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
             >
-              Login as Admin
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
-        </div>
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-orange-600 hover:bg-orange-500 active:bg-orange-700 disabled:opacity-50 p-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-orange-900/20"
+          >
+            {loading ? 'Authenticating...' : 'Login'}
+          </button>
+        </form>
       </div>
     </div>
   )
@@ -89,14 +82,6 @@ export default function App() {
 
   const [page, setPage] = useState<'orders' | 'menu' | 'history' | 'settings' | 'inventory' | 'reports'>('orders')
   const settings = useSettings()
-  const [bgIndex, setBgIndex] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBgIndex(i => (i + 1) % backgrounds.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
 
   if (!token || !role) {
     return <LoginScreen setAuth={(t, r) => {
@@ -121,6 +106,7 @@ export default function App() {
     sessionStorage.removeItem('role')
     setToken(null)
     setRole(null)
+    setPage('orders')
   }
 
   return (
@@ -174,17 +160,7 @@ export default function App() {
 
       {/* Main content */}
       <main className="flex-1 relative overflow-auto">
-        {!isLight && (
-          <div 
-            className="fixed inset-0 z-0 transition-opacity duration-1000"
-            style={{ 
-              backgroundImage: 'url(' + backgrounds[bgIndex] + ')', 
-              backgroundSize: 'cover', 
-              backgroundPosition: 'center', 
-              filter: 'brightness(0.25) sepia(0.2) hue-rotate(-20deg)' 
-            }} 
-          />
-        )}
+        
         <div className="relative z-10 max-w-6xl p-8 mx-auto">
           {page === 'settings' ? <SettingsPage /> : page === 'inventory' ? <InventoryPage /> : page === 'reports' ? <ReportsPage /> : <OrdersPage activeTab={page} />}
         </div>

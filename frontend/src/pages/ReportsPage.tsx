@@ -45,25 +45,27 @@ export default function ReportsPage() {
     <section className="space-y-6 text-slate-100">
       {error && <p className="error-card">{error}</p>}
       
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold">Financial Reports</h2>
-        <input 
-          type="text"
-          placeholder="Search by date..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="bg-slate-900 border border-slate-700 p-2 rounded mr-4"
-        />
-        <select 
-          value={period} 
-          onChange={e => setPeriod(e.target.value as any)}
-          className="bg-slate-900 border border-slate-700 p-2 rounded"
-        >
-          <option value="daily">Daily View</option>
-          <option value="monthly">Monthly View</option>
-          <option value="yearly">Yearly View</option>
-          <option value="all_time">All Time</option>
-        </select>
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <input 
+            type="text"
+            placeholder="Search by date..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-slate-900 border border-slate-700 p-2 rounded w-full sm:w-auto"
+          />
+          <select 
+            value={period} 
+            onChange={e => setPeriod(e.target.value as any)}
+            className="bg-slate-900 border border-slate-700 p-2 rounded w-full sm:w-auto"
+          >
+            <option value="daily">Daily View</option>
+            <option value="monthly">Monthly View</option>
+            <option value="yearly">Yearly View</option>
+            <option value="all_time">All Time</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

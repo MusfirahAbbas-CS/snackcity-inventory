@@ -293,7 +293,7 @@ export default function OrdersPage({ activeTab }: { activeTab: string }) {
                 value={customerName} 
                 onChange={e => setCustomerName(e.target.value)}
                 className="mt-1 bg-slate-900 border border-slate-700 p-2 rounded"
-                placeholder="e.g. John Doe"
+                placeholder="e.g. Hassan Ali"
               />
             </div>
             <div className="flex flex-col gap-1">
