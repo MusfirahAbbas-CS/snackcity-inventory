@@ -4,7 +4,7 @@ import OrdersPage from './pages/OrdersPage'
 import SettingsPage from './pages/SettingsPage'
 import InventoryPage from './pages/InventoryPage'
 import ReportsPage from './pages/ReportsPage'
-import { ShoppingCart, Utensils, Settings, Clock, LogOut, Package, BarChart3, Eye, EyeOff } from 'lucide-react'
+import { ShoppingCart, Utensils, Settings, Clock, LogOut, Package, BarChart3, Eye, EyeOff, PowerOff } from 'lucide-react'
 import { api } from './utils/api'
 
 function LoginScreen({ setAuth }: { setAuth: (token: string, role: string) => void }) {
@@ -79,9 +79,31 @@ function LoginScreen({ setAuth }: { setAuth: (token: string, role: string) => vo
 export default function App() {
   const [token, setToken] = useState(sessionStorage.getItem('token'))
   const [role, setRole] = useState(sessionStorage.getItem('role'))
+  const [shuttingDown, setShuttingDown] = useState(false)
 
   const [page, setPage] = useState<'orders' | 'menu' | 'history' | 'settings' | 'inventory' | 'reports'>('orders')
   const settings = useSettings()
+
+  async function shutdownSystem() {
+    setShuttingDown(true)
+    try {
+      await api('/shutdown', { method: 'POST' })
+    } catch (e) {
+      // Ignored, server will close connection
+    }
+  }
+
+  if (shuttingDown) {
+    return (
+      <div className={`flex h-screen w-screen items-center justify-center ${settings?.theme === 'light' ? 'bg-slate-100 text-slate-900' : 'bg-[#0a101a] text-slate-100'}`}>
+        <div className="text-center">
+          <PowerOff size={64} className="mx-auto mb-6 text-red-500" />
+          <h2 className="text-3xl font-bold mb-2">System Shut Down</h2>
+          <p className="text-slate-500">The server has been safely stopped. You can now close this window.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!token || !role) {
     return <LoginScreen setAuth={(t, r) => {
@@ -150,10 +172,14 @@ export default function App() {
             </>
           )}
         </nav>
-        <div className="p-4">
-          <button onClick={logout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-left w-full text-red-400 hover:bg-red-500/10 transition-colors">
+        <div className="p-4 space-y-2">
+          <button onClick={logout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-left w-full text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
             <LogOut size={20} />
             Logout
+          </button>
+          <button onClick={shutdownSystem} className="flex items-center gap-3 px-4 py-3 rounded-lg text-left w-full text-red-400 hover:bg-red-500/10 transition-colors">
+            <PowerOff size={20} />
+            Shutdown System
           </button>
         </div>
       </aside>

@@ -30,6 +30,17 @@ app.include_router(orders.router)
 app.include_router(reports.router)
 app.include_router(settings.router)
 
+import threading
+import time
+
+@app.post("/api/shutdown")
+def shutdown_server():
+    def suicide():
+        time.sleep(0.5)
+        os._exit(0)
+    threading.Thread(target=suicide, daemon=True).start()
+    return {"message": "Shutting down..."}
+
 # --- STATIC FILE SERVING FOR EXE ---
 
 if getattr(sys, 'frozen', False):

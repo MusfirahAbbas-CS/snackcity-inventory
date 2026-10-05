@@ -2,20 +2,58 @@ frontend/node_modules/
 frontend/dist/
 frontend/tsconfig.tsbuildinfo
 
-backend/.venv/
-backend/venv/
-backend/inventory.db
+# Databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Global Python Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+win7_env/
+backend/win7_env/
 
 # Global Python ignores
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
 # PyInstaller artifacts
-backend/build/
-backend/dist/
-backend/*.spec
+build/
+dist/
+*.spec
 
-# Conda environments
-win7_env/
-backend/win7_env/
+# Visual Studio / .NET ignores
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.dbmdl
+*.jfm
+*.pfx
+*.publishsettings
+TestResults/
+[Dd]ebug/
+[Rr]elease/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Embedded Python
+backend/official_py38/
+official_py38/
+*.zip
+
+
+[Pp]ackages/
+
